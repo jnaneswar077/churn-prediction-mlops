@@ -14,7 +14,9 @@ def run_preprocessing():
     df = pd.read_csv(data_path)
     
     # 2. Data Cleaning
-    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0)
+    # 2. Data Cleaning (Engineer 1: Fill with median)
+    median_val = pd.to_numeric(df['TotalCharges'], errors='coerce').median()
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(median_val)
     if 'customerID' in df.columns:
         df = df.drop('customerID', axis=1)
         
