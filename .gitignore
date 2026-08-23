@@ -1,0 +1,17 @@
+# Environments
+venv/
+env/
+__pycache__/
+.ipynb_checkpoints/
+
+# Ignore ALL data files
+data/raw/*.csv
+data/processed/*.npy
+
+# Ignore model artifacts
+models/*.pkl
+
+logs/
+outputs/
+
+.vscode/
