@@ -14,7 +14,9 @@ def run_preprocessing():
     df = pd.read_csv(data_path)
     
     # 2. Data Cleaning
-    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0)
+    # 2. Data Cleaning (Engineer 2: Fill with mean)
+    mean_val = pd.to_numeric(df['TotalCharges'], errors='coerce').mean()
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(mean_val)
     if 'customerID' in df.columns:
         df = df.drop('customerID', axis=1)
         
