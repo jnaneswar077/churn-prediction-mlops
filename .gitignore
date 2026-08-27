@@ -15,3 +15,10 @@ logs/
 outputs/
 
 .vscode/
+
+# Ignore MLflow tracking data and databases
+mlruns/
+mlflow.db
+
+# Ignore locally generated artifact plots and reports
+artifacts/
