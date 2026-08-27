@@ -21,7 +21,7 @@ def run_training():
     
     # 3. Save the trained model
     joblib.dump(model, 'models/random_forest_baseline.pkl')
-    print("✅ Model training complete and saved to disk!")
+    print("Model training complete and saved to disk!")
 
 if __name__ == "__main__":
     run_training()

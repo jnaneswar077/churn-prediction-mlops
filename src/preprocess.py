@@ -66,7 +66,7 @@ def run_preprocessing():
     with open('data/processed/dataset_metadata.json', 'w') as f:
         json.dump(metadata, f, indent=4)
         
-    print("✅ Preprocessing completed successfully!")
+    print("Preprocessing completed successfully!")
 
 if __name__ == "__main__":
     run_preprocessing()

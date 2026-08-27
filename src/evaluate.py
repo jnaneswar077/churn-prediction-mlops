@@ -43,7 +43,7 @@ def run_evaluation():
     false_negatives.to_csv('outputs/false_negatives.csv', index=False)
     false_positives.to_csv('outputs/false_positives.csv', index=False)
     
-    print("✅ Evaluation complete and error analysis files saved!")
+    print("Evaluation complete and error analysis files saved!")
 
 if __name__ == "__main__":
     run_evaluation()
