@@ -99,7 +99,7 @@ from sklearn.linear_model import LogisticRegression
 
 if __name__ == "__main__":
     # Baseline Run1
-    # train_and_track(run_name="RandomForest_Baseline")
+    train_and_track(run_name="RandomForest_KNN_Imputation")
 
     # run2
     # tuned_params = {
@@ -112,39 +112,39 @@ if __name__ == "__main__":
     # train_and_track(run_name="RandomForest_Shallow", params=tuned_params)
 
     # run3
-    print("\n--- Starting MLflow Run: LogisticRegression_Baseline ---")
+    # print("\n--- Starting MLflow Run: LogisticRegression_Baseline ---")
     
-    X_train = np.load('data/processed/X_train_final.npy')
-    X_test = np.load('data/processed/X_test_final.npy')
-    y_train = np.load('data/processed/y_train.npy')
-    y_test = np.load('data/processed/y_test.npy')
+    # X_train = np.load('data/processed/X_train_final.npy')
+    # X_test = np.load('data/processed/X_test_final.npy')
+    # y_train = np.load('data/processed/y_train.npy')
+    # y_test = np.load('data/processed/y_test.npy')
 
-    mlflow.set_experiment("Telco_Churn_Prediction")
+    # mlflow.set_experiment("Telco_Churn_Prediction")
 
-    with mlflow.start_run(run_name="LogisticRegression_Baseline"):
+    # with mlflow.start_run(run_name="LogisticRegression_Baseline"):
         
-        # 1. Log Parameters for Logistic Regression
-        params = {"C": 1.0, "max_iter": 1000, "class_weight": "balanced"}
-        mlflow.log_params(params)
-        mlflow.log_param("model_family", "LogisticRegression")
+    #     # 1. Log Parameters for Logistic Regression
+    #     params = {"C": 1.0, "max_iter": 1000, "class_weight": "balanced"}
+    #     mlflow.log_params(params)
+    #     mlflow.log_param("model_family", "LogisticRegression")
         
-        # 2. Train Model
-        model = LogisticRegression(**params)
-        model.fit(X_train, y_train)
+    #     # 2. Train Model
+    #     model = LogisticRegression(**params)
+    #     model.fit(X_train, y_train)
         
-        # 3. Evaluate Predictions
-        y_pred = model.predict(X_test)
-        y_prob = model.predict_proba(X_test)[:, 1]
+    #     # 3. Evaluate Predictions
+    #     y_pred = model.predict(X_test)
+    #     y_prob = model.predict_proba(X_test)[:, 1]
         
-        metrics = {
-            "accuracy": accuracy_score(y_test, y_pred),
-            "precision": precision_score(y_test, y_pred),
-            "recall": recall_score(y_test, y_pred),
-            "f1_score": f1_score(y_test, y_pred),
-            "roc_auc": roc_auc_score(y_test, y_prob)
-        }
+    #     metrics = {
+    #         "accuracy": accuracy_score(y_test, y_pred),
+    #         "precision": precision_score(y_test, y_pred),
+    #         "recall": recall_score(y_test, y_pred),
+    #         "f1_score": f1_score(y_test, y_pred),
+    #         "roc_auc": roc_auc_score(y_test, y_prob)
+    #     }
         
-        mlflow.log_metrics(metrics)
-        mlflow.sklearn.log_model(sk_model=model, name="model")
+    #     mlflow.log_metrics(metrics)
+    #     mlflow.sklearn.log_model(sk_model=model, name="model")
         
-        print(f"Metrics logged: F1 = {metrics['f1_score']:.4f} | ROC-AUC = {metrics['roc_auc']:.4f}")
+    #     print(f"Metrics logged: F1 = {metrics['f1_score']:.4f} | ROC-AUC = {metrics['roc_auc']:.4f}")

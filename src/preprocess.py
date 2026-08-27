@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import KNNImputer
 
 def run_preprocessing():
     print("Starting Preprocessing Pipeline...")
@@ -14,7 +15,19 @@ def run_preprocessing():
     df = pd.read_csv(data_path)
     
     # 2. Data Cleaning
-    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0)
+    # df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0)
+
+    # 2. Data Cleaning (Experiment: Fill missing TotalCharges with KNN Imputer)
+    # First, force empty strings to NaN
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+    
+    # We use tenure and MonthlyCharges to help KNN find the most similar customers
+    knn_cols = ['tenure', 'MonthlyCharges', 'TotalCharges']
+    
+    print("Applying KNN Imputation")
+    imputer = KNNImputer(n_neighbors=5)
+    df[knn_cols] = imputer.fit_transform(df[knn_cols])
+
     if 'customerID' in df.columns:
         df = df.drop('customerID', axis=1)
         
