@@ -43,7 +43,7 @@ def run_preprocessing():
     )
     
     # 4. Separate Column Types
-    cat_cols = X_train.select_dtypes(include=['object', 'category', 'str']).columns
+    cat_cols = X_train.select_dtypes(include=['object', 'category']).columns
     num_cols = X_train.select_dtypes(include=['int64', 'float64']).columns
     
     # 5. Scale & Encode

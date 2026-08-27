@@ -92,7 +92,7 @@ def train_and_track(run_name="RandomForest_Baseline", params=None):
 
         # Save local backup
         joblib.dump(model, 'models/random_forest_model.pkl')
-        print(f"✅ Run '{run_name}' successfully tracked!")
+        print(f"Run '{run_name}' successfully tracked!")
 
 # run3
 from sklearn.linear_model import LogisticRegression
