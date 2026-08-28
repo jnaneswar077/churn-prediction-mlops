@@ -22,14 +22,22 @@ def train_and_register_model():
         return
     
     # 3. Define Model Parameters
+    # params = {
+    #     "n_estimators": 100,
+    #     "max_depth": 10,
+    #     "random_state": 42,
+    #     "class_weight": "balanced"
+    # }
+
     params = {
-        "n_estimators": 100,
-        "max_depth": 10,
+        "n_estimators": 200,
+        "max_depth": 15,
         "random_state": 42,
         "class_weight": "balanced"
     }
     
-    with mlflow.start_run(run_name="RandomForest_Registry_V1") as run:
+    # with mlflow.start_run(run_name="RandomForest_Registry_V1") as run:
+    with mlflow.start_run(run_name="RandomForest_Registry_V2") as run:
         # Log parameters
         mlflow.log_params(params)
         mlflow.log_param("model_family", "RandomForest")
