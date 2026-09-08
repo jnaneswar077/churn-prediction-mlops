@@ -15,7 +15,7 @@ def run_preprocessing():
     df = pd.read_csv(data_path)
     
     # 2. Data Cleaning
-    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0)
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
 
     # 2. Data Cleaning (Experiment: Fill missing TotalCharges with KNN Imputer)
     # First, force empty strings to NaN
