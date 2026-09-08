@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import pandera.pandas as pa
 from pandera import Column, Check
+import sys
 
 def get_telco_schema():
     """Defines the strict schema specification for the Telco Churn dataset."""
@@ -58,6 +59,11 @@ if __name__ == "__main__":
     data_path = 'data/raw/churn.csv'
     if os.path.exists(data_path):
         raw_df = pd.read_csv(data_path)
-        validate_schema(raw_df, output_report_name="baseline_validation.csv")
+        passed = validate_schema(raw_df, output_report_name="baseline_validation.csv")
+        if passed:
+            sys.exit(0)
+        else:
+            sys.exit(1)
     else:
         print(f"[ERROR] Target file not found at: {data_path}")
+        sys.exit(1)

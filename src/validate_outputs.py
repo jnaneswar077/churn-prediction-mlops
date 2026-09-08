@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+import sys
 
 def validate_preprocessing_outputs():
     print("[INFO] Validating Preprocessing Outputs...")
@@ -63,4 +64,8 @@ def validate_preprocessing_outputs():
         return True
 
 if __name__ == "__main__":
-    validate_preprocessing_outputs()
+    passed = validate_preprocessing_outputs()
+    if passed:
+        sys.exit(0)
+    else:
+        sys.exit(1)
