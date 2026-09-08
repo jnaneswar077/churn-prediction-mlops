@@ -1,0 +1,71 @@
+name: ML Pipeline CI
+
+# Stage 2: trigger conditions.
+# Fires on code changes, dataset changes, AND changes to this workflow
+# file itself -- three distinct trigger conditions, not just "on push".
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'pipelines/**'
+      - 'data/raw/**'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'pipelines/**'
+      - 'data/raw/**'
+      - 'requirements.txt'
+  # Allows a manual "Run workflow" button in the GitHub Actions tab --
+  # useful for the repeated-execution / reproducibility test in Stage 4.
+  workflow_dispatch: {}
+
+jobs:
+  run-ml-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Stage 1: automated preprocessing, training, validation, evaluation.
+      # This is the exact same orchestrator built and verified in Lab 7 --
+      # nothing CI-specific about the pipeline logic itself.
+      - name: Run ML pipeline (preprocessing -> validation -> training -> evaluation -> inference)
+        run: python pipelines/run_lab7_pipeline.py
+
+      # Stage 3: track workflow execution logs, validation outputs,
+      # pipeline artifacts, and CI execution summaries.
+      # if: always() ensures these upload even if the pipeline step above
+      # failed -- a failed run's logs are exactly what you need to debug it.
+      - name: Upload pipeline run log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-run-log
+          path: logs/
+
+      - name: Upload evaluation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-reports
+          path: reports/
+
+      - name: Upload validation and reproducibility artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-artifacts
+          path: artifacts/
