@@ -1,7 +1,7 @@
 {
     "dataset_name": "Telco Customer Churn",
     "train_shape": [
-        5634,
+        5635,
         30
     ],
     "test_shape": [
