@@ -70,8 +70,6 @@ def train_and_register_model():
         print("[INFO] Pushing model to MLflow Registry...")
         mlflow.sklearn.log_model(
             sk_model=rf_model,
-            # artifact_path="random_forest_model",
-            # artifact_path is deprecated in newer MLflow versions
             name="random_forest_model",
             registered_model_name="Telco_Churn_Production_Model" # Creates the registry entry
         )

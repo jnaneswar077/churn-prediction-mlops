@@ -79,17 +79,20 @@ def apply_missing_model_artifact():
 
 
 SCENARIOS = {
-    "missing_data": (apply_missing_data, None),
-    "invalid_datatypes": (apply_invalid_datatypes, None),
-    "schema_mismatch": (apply_schema_mismatch, None),
-    "preprocessing_inconsistency": (apply_preprocessing_inconsistency, None),
-    # This one is deliberately run against predict.py ALONE, not the
-    # full orchestrator. Running the full orchestrator would just
-    # retrain a fresh model in Stage 2, masking the fault -- unrealistic,
-    # since a real deployment does not retrain on every inference call.
-    # The real test is: what happens if you try to serve inference with
-    # no model artifact and no retraining step available?
-    "missing_model_artifact": (apply_missing_model_artifact, "src/predict.py"),
+    # name: (apply_fn, target_script, expected_outcome)
+    # Only ONE fallback mechanism was worth building: missing model
+    # artifacts (a realistic deploy-time issue). Recovering from a
+    # missing raw dataset was deliberately NOT built -- losing the
+    # source dataset entirely is a low-probability event for this
+    # project, and it isn't worth wiring fallback logic into every
+    # stage that reads it just to cover that case. Detect-and-halt is
+    # the right, honest behavior for a scenario you don't intend to
+    # actually recover from.
+    "missing_data": (apply_missing_data, None, "halt"),
+    "invalid_datatypes": (apply_invalid_datatypes, None, "halt"),
+    "schema_mismatch": (apply_schema_mismatch, None, "halt"),
+    "preprocessing_inconsistency": (apply_preprocessing_inconsistency, None, "halt"),
+    "missing_model_artifact": (apply_missing_model_artifact, "src/predict.py", "recover"),
 }
 
 
@@ -156,9 +159,10 @@ def find_failed_stage(run_log):
     return None, []
 
 
-def run_scenario(name, apply_fault_fn, target_script=None):
+def run_scenario(name, apply_fault_fn, target_script, expected_outcome):
     print(f"\n{'#'*70}")
-    print(f"# SCENARIO: {name}" + (f"  (target: {target_script})" if target_script else ""))
+    print(f"# SCENARIO: {name}  (expected: {expected_outcome})" +
+          (f"  (target: {target_script})" if target_script else ""))
     print(f"{'#'*70}")
 
     backups = backup_files()
@@ -167,29 +171,35 @@ def run_scenario(name, apply_fault_fn, target_script=None):
         exit_code, run_log = run_pipeline_and_capture(target_script)
         failed_stage, error_lines = find_failed_stage(run_log)
 
-        detected = (exit_code != 0)
+        if expected_outcome == "halt":
+            correct = (exit_code != 0)
+            outcome_label = "HALTED (correctly)" if correct else "**DID NOT HALT -- BUG**"
+        else:  # "recover"
+            correct = (exit_code == 0)
+            outcome_label = "RECOVERED (correctly)" if correct else "**FAILED TO RECOVER -- BUG**"
+
         result = {
             "scenario": name,
+            "expected_outcome": expected_outcome,
             "pipeline_exit_code": exit_code,
-            "failure_detected": detected,
+            "outcome_correct": correct,
             "failed_at_stage": failed_stage,
             "error_evidence": error_lines,
         }
 
-        if detected:
-            print(f"[RESULT] Failure correctly detected at: {failed_stage}")
-        else:
-            print(f"[RESULT] WARNING -- pipeline exited 0 despite injected fault '{name}'. "
-                  f"This fault was NOT caught.")
-
+        print(f"[RESULT] {outcome_label}" + (f" at: {failed_stage}" if failed_stage else ""))
         return result
 
     except Exception as e:
+        # Only truly unexpected: none of our scenarios should reach this,
+        # since every apply_fn/run step is meant to be handled gracefully
+        # one way or another.
         return {
             "scenario": name,
+            "expected_outcome": expected_outcome,
             "pipeline_exit_code": None,
-            "failure_detected": True,
-            "failed_at_stage": "harness-level exception (before pipeline even ran)",
+            "outcome_correct": False,
+            "failed_at_stage": "harness-level exception (unexpected)",
             "error_evidence": [str(e)],
         }
 
@@ -199,10 +209,10 @@ def run_scenario(name, apply_fault_fn, target_script=None):
 
 
 def run_all_scenarios():
-    print("[INFO] Starting Lab 9 Stage 1-2: Failure Injection and Root-Cause Observation...")
+    print("[INFO] Starting Lab 9: Failure Injection, Root-Cause Observation, and Recovery Testing...")
     results = []
-    for name, (apply_fn, target_script) in SCENARIOS.items():
-        results.append(run_scenario(name, apply_fn, target_script))
+    for name, (apply_fn, target_script, expected_outcome) in SCENARIOS.items():
+        results.append(run_scenario(name, apply_fn, target_script, expected_outcome))
 
     os.makedirs("artifacts", exist_ok=True)
     with open("artifacts/failure_simulation_report.json", "w") as f:
@@ -211,14 +221,15 @@ def run_all_scenarios():
     print(f"\n{'='*70}")
     print("FAILURE SIMULATION SUMMARY")
     print('='*70)
-    all_detected = True
+    all_correct = True
     for r in results:
-        status = "DETECTED" if r["failure_detected"] else "**NOT DETECTED**"
-        print(f"  {r['scenario']:32s} -> {status:14s} (stage: {r['failed_at_stage']})")
-        all_detected = all_detected and r["failure_detected"]
+        status = "OK" if r["outcome_correct"] else "**BUG**"
+        print(f"  {r['scenario']:32s} expected={r['expected_outcome']:8s} "
+              f"-> {status:8s} (stage: {r['failed_at_stage']})")
+        all_correct = all_correct and r["outcome_correct"]
 
     print(f"\nReport saved to artifacts/failure_simulation_report.json")
-    return all_detected
+    return all_correct
 
 
 if __name__ == "__main__":

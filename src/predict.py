@@ -6,14 +6,71 @@ import joblib
 
 PIPELINE_PATH = 'models/churn_full_pipeline.pkl'
 
+# Fallback artifacts: the older, separately-saved preprocessor + model
+# from Lab 2/5. If the unified Lab 7 pipeline artifact is missing, these
+# let inference keep working in a degraded (but real) mode instead of
+# failing outright.
+FALLBACK_PREPROCESSOR_PATH = 'models/preprocessor.pkl'
+FALLBACK_MODEL_PATH = 'models/random_forest_baseline.pkl'
+
+
+class _FallbackPipelineAdapter:
+    """Wraps a separate preprocessor + model so they can be used through
+    the exact same .predict()/.predict_proba() interface as the unified
+    pipeline -- callers don't need to know which mode they're in."""
+
+    def __init__(self, preprocessor, model):
+        self.preprocessor = preprocessor
+        self.model = model
+
+    def predict(self, df):
+        return self.model.predict(self.preprocessor.transform(df))
+
+    def predict_proba(self, df):
+        return self.model.predict_proba(self.preprocessor.transform(df))
+
 
 def load_pipeline(pipeline_path=PIPELINE_PATH):
+    """Kept for backward compatibility with anything already calling
+    this directly; prefer load_pipeline_with_fallback() for new code."""
     if not os.path.exists(pipeline_path):
         raise FileNotFoundError(
             f"Unified pipeline not found at: {pipeline_path}. "
             f"Run src/train_full_pipeline.py first (Stage 2)."
         )
     return joblib.load(pipeline_path)
+
+
+def load_pipeline_with_fallback():
+    """Returns (predictor, mode) where mode is 'primary' or 'fallback'.
+
+    If the unified pipeline artifact is missing, falls back to the
+    older separate preprocessor.pkl + random_forest_baseline.pkl
+    artifacts -- real, already-existing files from earlier labs, not
+    hypothetical ones. This is a genuine degraded-mode recovery: it
+    still serves real predictions, just from an older model, and it
+    says so loudly rather than pretending nothing happened.
+    """
+    if os.path.exists(PIPELINE_PATH):
+        return joblib.load(PIPELINE_PATH), "primary"
+
+    print(f"[WARNING] Primary unified pipeline not found at: {PIPELINE_PATH}")
+
+    if os.path.exists(FALLBACK_PREPROCESSOR_PATH) and os.path.exists(FALLBACK_MODEL_PATH):
+        print(f"[RECOVERY] Falling back to legacy artifacts: "
+              f"{FALLBACK_PREPROCESSOR_PATH} + {FALLBACK_MODEL_PATH}")
+        print("[RECOVERY] Serving inference in DEGRADED MODE (older model, not the "
+              "current unified pipeline). Retrain via src/train_full_pipeline.py "
+              "when possible.")
+        preprocessor = joblib.load(FALLBACK_PREPROCESSOR_PATH)
+        model = joblib.load(FALLBACK_MODEL_PATH)
+        return _FallbackPipelineAdapter(preprocessor, model), "fallback"
+
+    raise FileNotFoundError(
+        f"No usable model artifacts found. Checked primary ({PIPELINE_PATH}) and "
+        f"fallback ({FALLBACK_PREPROCESSOR_PATH}, {FALLBACK_MODEL_PATH}). "
+        f"Run src/train_full_pipeline.py first."
+    )
 
 
 def predict_churn(raw_df, pipeline=None):
@@ -51,7 +108,9 @@ def run_inference_demo(input_path=None, n_sample=5):
     print("[INFO] Starting Lab 7 Stage 5: Inference...")
 
     try:
-        pipeline = load_pipeline()
+        pipeline, mode = load_pipeline_with_fallback()
+        if mode == "fallback":
+            print("[INFO] Continuing with fallback model.")
     except FileNotFoundError as e:
         print(f"[ERROR] {e}")
         return False
