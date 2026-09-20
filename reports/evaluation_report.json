@@ -1,0 +1,22 @@
+{
+    "stage": "ML Pipeline - Model Evaluation",
+    "evaluated_on": "held-out test split",
+    "test_rows": 1409,
+    "metrics": {
+        "accuracy": 0.7665,
+        "precision": 0.5421,
+        "recall": 0.7754,
+        "f1_score": 0.6381,
+        "roc_auc": 0.8484
+    },
+    "confusion_matrix": [
+        [
+            790,
+            245
+        ],
+        [
+            84,
+            290
+        ]
+    ]
+}
