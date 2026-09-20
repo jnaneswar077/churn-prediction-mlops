@@ -21,17 +21,9 @@ def train_and_register_model():
         print("[ERROR] Processed data not found. Please run the Lab 5 pipeline first.")
         return
     
-    # 3. Define Model Parameters
-    # params = {
-    #     "n_estimators": 100,
-    #     "max_depth": 10,
-    #     "random_state": 42,
-    #     "class_weight": "balanced"
-    # }
-
     params = {
-        "n_estimators": 200,
-        "max_depth": 15,
+        "n_estimators": 150,
+        "max_depth": 12,
         "random_state": 42,
         "class_weight": "balanced"
     }

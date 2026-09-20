@@ -5,6 +5,9 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, Field
 import pandas as pd
 
@@ -37,6 +40,62 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+
+# ---------------------------------------------------------------------
+# Stage 6: Standardized error handling.
+#
+# Without these, three different kinds of failure would return three
+# different JSON shapes: Pydantic validation errors, our own
+# HTTPException calls, and any genuinely unexpected server error. These
+# three handlers force EVERY error response through the same shape:
+#   { "error": true, "status_code": <int>, "message": <str>, "details": <optional> }
+# so a client never has to special-case how to parse an error.
+# ---------------------------------------------------------------------
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": True,
+            "status_code": 422,
+            "message": "Request validation failed.",
+            "details": exc.errors()
+        }
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    # Catches BOTH our own raise HTTPException(...) calls AND FastAPI's
+    # built-in ones (like 404 for an unmatched route).
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": True,
+            "status_code": exc.status_code,
+            "message": str(exc.detail),
+            "details": None
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc):
+    # The genuine last resort: something broke that none of the above
+    # anticipated. Never leak a raw Python traceback to a client --
+    # return a clean 500 in the same standardized shape instead.
+    print(f"[UNHANDLED ERROR] {type(exc).__name__}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": True,
+            "status_code": 500,
+            "message": "An unexpected internal error occurred.",
+            "details": None
+        }
+    )
 
 
 @app.get("/health")
@@ -113,7 +172,9 @@ class PredictionOutput(BaseModel):
 
 @app.post("/predict", response_model=PredictionOutput)
 def predict(customer: CustomerInput):
-    pipeline = ml_model["pipeline"]
+    pipeline = ml_model.get("pipeline")
+    if pipeline is None:
+        raise HTTPException(status_code=503, detail="Model is not currently loaded.")
     mode = ml_model["mode"]
 
     df = pd.DataFrame([customer.dict()])
@@ -177,7 +238,9 @@ def predict_batch(customers: list[CustomerInput]):
     if len(customers) == 0:
         raise HTTPException(status_code=400, detail="Batch request contained zero customers.")
 
-    pipeline = ml_model["pipeline"]
+    pipeline = ml_model.get("pipeline")
+    if pipeline is None:
+        raise HTTPException(status_code=503, detail="Model is not currently loaded.")
     mode = ml_model["mode"]
 
     df = pd.DataFrame([c.dict() for c in customers])
