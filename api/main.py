@@ -4,7 +4,7 @@ import pandas as pd
 
 from api.model_loader import ModelLoader
 from api.preprocessing import clean_prediction_data
-from api.schemas import CustomerInput
+from api.schemas import CustomerInput, PredictionResponse
 
 model_loader = ModelLoader()
 
@@ -60,7 +60,7 @@ def metadata():
         "preprocessor_loaded": model_loader.preprocessor is not None,
     }
 
-@app.post("/predict")
+@app.post("/predict", response_model=PredictionResponse)
 def predict(data: CustomerInput):
 
 

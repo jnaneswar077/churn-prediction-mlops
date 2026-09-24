@@ -86,3 +86,6 @@ class CustomerInput(BaseModel):
 
     TotalCharges: str
 
+class PredictionResponse(BaseModel):
+    prediction: int
+    churn_probability: float
