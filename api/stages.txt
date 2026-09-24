@@ -1,0 +1,11 @@
+Stage 1  Basic FastAPI             ✅
+Stage 2  /health                   ✅
+Stage 3  ModelLoader               ✅
+Stage 4  /metadata                 🔨 NOW
+Stage 5  /predict                  ⏭️
+Stage 6  Schemas                   ⏭️
+Stage 7  Validation + errors       ⏭️
+Stage 8  Batch prediction          ⏭️
+Stage 9  API tests                 ⏭️
+Stage 10 Performance               ⏭️
+Stage 11 Reports/documentation     ⏭️
