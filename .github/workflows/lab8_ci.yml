@@ -2,7 +2,7 @@ name: Lab 8 - MLOps CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths:
       - "config.yaml"
       - "src/mlops_pipeline/**"
