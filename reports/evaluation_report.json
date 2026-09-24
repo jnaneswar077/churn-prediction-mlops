@@ -3,20 +3,20 @@
     "evaluated_on": "held-out test split",
     "test_rows": 1409,
     "metrics": {
-        "accuracy": 0.7665,
-        "precision": 0.5421,
-        "recall": 0.7754,
-        "f1_score": 0.6381,
-        "roc_auc": 0.8484
+        "accuracy": 0.7615,
+        "precision": 0.5374,
+        "recall": 0.7299,
+        "f1_score": 0.619,
+        "roc_auc": 0.8406
     },
     "confusion_matrix": [
         [
-            790,
-            245
+            800,
+            235
         ],
         [
-            84,
-            290
+            101,
+            273
         ]
     ]
 }

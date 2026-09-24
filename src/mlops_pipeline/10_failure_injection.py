@@ -312,7 +312,7 @@ def run_failure_tests():
                 test(config)
             )
 
-        all_runs.append(
+        all_runs.append(    
             {
                 "repetition": repetition,
                 "results": repetition_results,
