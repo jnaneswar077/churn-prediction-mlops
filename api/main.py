@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from api.model_loader import ModelLoader
 from api.preprocessing import clean_prediction_data
-from api.schemas import CustomerInput, PredictionResponse
+from api.schemas import CustomerInput, PredictionResponse, BatchPredictionRequest, BatchPredictionResponse
 
 model_loader = ModelLoader()
 
@@ -42,7 +42,15 @@ async def validation_exception_handler(
     errors = []
 
     for error in exc.errors():
-        field = error["loc"][-1]
+        # @below llines after field = can be replaced by locations = till feild = ".".join
+        # field = error["loc"][-1] 
+        locations = [
+            str(location)
+            for location in error["loc"]
+            if location != "body"
+        ]
+
+        field = ".".join(locations)
 
         errors.append(
             {
@@ -151,4 +159,64 @@ def predict(data: CustomerInput):
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred during prediction",
+        )
+
+@app.post(
+    "/predict/batch",
+    response_model=BatchPredictionResponse,
+)
+def predict_batch(data: BatchPredictionRequest):
+
+    if not model_loader.is_ready():
+        raise HTTPException(
+            status_code=503,
+            detail="Model or preprocessor is not available",
+        )
+
+    try:
+        # 1. Convert all Pydantic objects to dictionaries
+        data_dicts = [
+            customer.model_dump()
+            for customer in data.customers
+        ]
+
+        # 2. Convert all customers into one DataFrame
+        df = pd.DataFrame(data_dicts)
+
+        # 3. Clean the raw input
+        df = clean_prediction_data(df)
+
+        # 4. Transform the complete batch
+        X = model_loader.preprocessor.transform(df)
+
+        # 5. Generate predictions for the complete batch
+        predictions = model_loader.model.predict(X)
+
+        # 6. Generate churn probabilities
+        probabilities = model_loader.model.predict_proba(X)[:, 1]
+
+        # 7. Build response
+        results = []
+
+        for prediction, probability in zip(
+            predictions,
+            probabilities,
+        ):
+            results.append(
+                {
+                    "prediction": int(prediction),
+                    "churn_probability": float(probability),
+                }
+            )
+
+        # 8. Return batch response
+        return {
+            "count": len(results),
+            "predictions": results,
+        }
+
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred during batch prediction",
         )

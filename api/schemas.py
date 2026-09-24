@@ -100,3 +100,10 @@ class ErrorResponse(BaseModel):
     status: str
     message: str
     details: list[ErrorDetail]
+
+class BatchPredictionRequest(BaseModel):
+    customers: list[CustomerInput] = Field(min_length=1)
+
+class BatchPredictionResponse(BaseModel):
+    count: int
+    predictions: list[PredictionResponse]

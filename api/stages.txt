@@ -80,3 +80,13 @@ Normal prediction after changes	✅
                               │                │
                               ▼                ▼
                          Standard 500       HTTP 200
+
+Stage 8 — Batch Prediction
+
+8.1 Batch request schema       ✅
+8.2 Batch response schema      ✅
+8.3 Batch endpoint             ✅
+8.4 Batch preprocessing       ✅
+8.5 Batch inference            ✅
+8.6 Batch response             ✅
+8.7 Batch validation           ✅
