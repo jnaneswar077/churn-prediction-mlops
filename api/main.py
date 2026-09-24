@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+import pandas as pd
+
 from api.model_loader import ModelLoader
-
-
+from api.preprocessing import clean_prediction_data
 
 model_loader = ModelLoader()
 
@@ -56,4 +57,28 @@ def metadata():
         "model_uri": model_loader.model_uri,
         "model_loaded": model_loader.model is not None,
         "preprocessor_loaded": model_loader.preprocessor is not None,
+    }
+
+@app.post("/predict")
+def predict(data: dict):
+
+    # 1. Convert JSON data into a DataFrame
+    df = pd.DataFrame([data])
+
+    # 2. Clean the raw input
+    df = clean_prediction_data(df)
+
+    # 3. Transform using the saved preprocessing pipeline
+    X = model_loader.preprocessor.transform(df)
+
+    # 4. Generate prediction
+    prediction = model_loader.model.predict(X)[0]
+
+    # 5. Generate churn probability
+    probability = model_loader.model.predict_proba(X)[0][1]
+
+    # 6. Return the prediction
+    return {
+        "prediction": int(prediction),
+        "churn_probability": float(probability),
     }
