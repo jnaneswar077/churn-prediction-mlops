@@ -1,19 +1,34 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from api.model_loader import ModelLoader
+
+
+
+model_loader = ModelLoader()
+
+
+# @app.on_event("startup")
+# def startup_event():
+#     model_loader.load()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    #startup
+    model_loader.load()
+
+    yield
+
+    #shutdowon
+    print("[INFO] Churn Prediction API shutting down...")
 
 
 app = FastAPI(
     title="Churn Prediction API",
     description="Lab 10 - ML Model Serving and API Engineering",
     version="1.0.0",
+    lifespan=lifespan
 )
 
-model_loader = ModelLoader()
-
-
-@app.on_event("startup")
-def startup_event():
-    model_loader.load()
 
 @app.get("/")
 def root():

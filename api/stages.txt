@@ -9,3 +9,16 @@ Stage 8  Batch prediction          ⏭️
 Stage 9  API tests                 ⏭️
 Stage 10 Performance               ⏭️
 Stage 11 Reports/documentation     ⏭️
+
+Stage 1  → Basic FastAPI app              ✅
+Stage 2  → /health                         ✅
+Stage 3  → ModelLoader                     ✅
+Stage 4  → /metadata                       ✅
+Stage 5  → /predict                        ← NOW
+Stage 6  → Pydantic input/output schemas
+Stage 7  → Validation + standardized errors
+Stage 8  → Batch prediction
+Stage 9  → API testing
+Stage 10 → Invalid/extreme/corrupted input
+Stage 11 → Performance/reliability
+Stage 12 → Reports + documentation
