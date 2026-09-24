@@ -4,6 +4,7 @@ import pandas as pd
 
 from api.model_loader import ModelLoader
 from api.preprocessing import clean_prediction_data
+from api.schemas import CustomerInput
 
 model_loader = ModelLoader()
 
@@ -60,11 +61,18 @@ def metadata():
     }
 
 @app.post("/predict")
-def predict(data: dict):
+def predict(data: CustomerInput):
+
 
     # 1. Convert JSON data into a DataFrame
-    df = pd.DataFrame([data])
+    # df = pd.DataFrame([data])
 
+    # Convert Pydantic object to dictionary
+    data_dict = data.model_dump()
+
+    # Convert dictionary to DataFrame
+    df = pd.DataFrame([data_dict])
+    
     # 2. Clean the raw input
     df = clean_prediction_data(df)
 

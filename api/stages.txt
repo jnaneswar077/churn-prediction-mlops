@@ -22,3 +22,19 @@ Stage 9  → API testing
 Stage 10 → Invalid/extreme/corrupted input
 Stage 11 → Performance/reliability
 Stage 12 → Reports + documentation
+
+
+| Stage  | Task                                    | Status                      |
+| ------ | --------------------------------------- | --------------------------- |
+| **1**  | Basic FastAPI app                       | ✅ Complete                  |
+| **2**  | `/health`                               | ✅ Complete                  |
+| **3**  | `ModelLoader`                           | ✅ Complete                  |
+| **4**  | `/metadata`                             | ✅ Complete                  |
+| **5**  | `/predict`                              | ✅ Complete                  |
+| **6**  | Pydantic input/output schemas           | 🔨 **Currently completing** |
+| **7**  | Validation + standardized errors        | ⏭️ Next                     |
+| **8**  | Batch prediction                        | ⏭️                          |
+| **9**  | API testing                             | ⏭️                          |
+| **10** | Invalid/extreme/corrupted input testing | ⏭️                          |
+| **11** | Performance + reliability               | ⏭️                          |
+| **12** | Reports + documentation                 | ⏭️                          |
