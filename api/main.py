@@ -1,6 +1,9 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+
 import pandas as pd
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from api.model_loader import ModelLoader
 from api.preprocessing import clean_prediction_data
@@ -31,6 +34,31 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+):
+    errors = []
+
+    for error in exc.errors():
+        field = error["loc"][-1]
+
+        errors.append(
+            {
+                "field": str(field),
+                "message": error["msg"],
+            }
+        )
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "message": "Request validation failed",
+            "details": errors,
+        },
+    )
 
 @app.get("/")
 def root():

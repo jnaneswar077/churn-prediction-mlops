@@ -86,6 +86,17 @@ class CustomerInput(BaseModel):
 
     TotalCharges: str
 
+
 class PredictionResponse(BaseModel):
     prediction: int
     churn_probability: float
+
+class ErrorDetail(BaseModel):
+    field: str
+    message: str
+
+
+class ErrorResponse(BaseModel):
+    status: str
+    message: str
+    details: list[ErrorDetail]
