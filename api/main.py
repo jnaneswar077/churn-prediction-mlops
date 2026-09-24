@@ -130,6 +130,9 @@ def predict(data: CustomerInput):
         # 2. Clean the raw input
         df = clean_prediction_data(df)
 
+        #just to test if our model not working case is properly working or not ie are we able to raise cusom excpetion  using below defined except exception
+        # raise ValueError("TEST: simulated prediction failure")
+
         # 3. Transform using the saved preprocessing pipeline
         X = model_loader.preprocessor.transform(df)
 
