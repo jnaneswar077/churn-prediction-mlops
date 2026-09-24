@@ -38,3 +38,45 @@ Stage 12 → Reports + documentation
 | **10** | Invalid/extreme/corrupted input testing | ⏭️                          |
 | **11** | Performance + reliability               | ⏭️                          |
 | **12** | Reports + documentation                 | ⏭️                          |
+
+Stage 7 status
+Requirement	Status
+Pydantic input validation	✅
+Invalid categorical values	✅
+Invalid numeric ranges	✅
+Missing fields	✅
+Multiple validation errors	✅
+Standardized 422 response	✅
+Model/preprocessor readiness check	✅
+Standardized 503 response	✅
+Unexpected runtime exception handling	✅
+Normal prediction after changes	✅
+
+/predict architecture is now
+                  POST /predict
+                       │
+                       ▼
+              CustomerInput
+                       │
+             Pydantic validation
+                       │
+              ┌────────┴────────┐
+              │                 │
+           Invalid             Valid
+              │                 │
+              ▼                 ▼
+         Standard 422      is_ready()?
+                                │
+                         ┌──────┴──────┐
+                         │             │
+                       False          True
+                         │             │
+                         ▼             ▼
+                    Standard 503    try:
+                                      │
+                              ┌───────┴────────┐
+                              │                │
+                           Failure          Success
+                              │                │
+                              ▼                ▼
+                         Standard 500       HTTP 200

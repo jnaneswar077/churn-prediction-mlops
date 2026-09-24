@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 import pandas as pd
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -60,6 +60,26 @@ async def validation_exception_handler(
         },
     )
 
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(
+    request: Request,
+    exc: HTTPException,
+):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "message": "Prediction service unavailable",
+            "details": [
+                {
+                    "field": "prediction",
+                    "message": str(exc.detail),
+                }
+            ],
+        },
+    )
+
 @app.get("/")
 def root():
     return {
@@ -91,30 +111,41 @@ def metadata():
 @app.post("/predict", response_model=PredictionResponse)
 def predict(data: CustomerInput):
 
+    if not model_loader.is_ready():
+        raise HTTPException(
+            status_code=503,
+            detail="Model or preprocessor is not available",
+        )
 
-    # 1. Convert JSON data into a DataFrame
-    # df = pd.DataFrame([data])
+    try:
+        # 1. Convert JSON data into a DataFrame
+        # df = pd.DataFrame([data])
 
-    # Convert Pydantic object to dictionary
-    data_dict = data.model_dump()
+        # Convert Pydantic object to dictionary
+        data_dict = data.model_dump()
 
-    # Convert dictionary to DataFrame
-    df = pd.DataFrame([data_dict])
-    
-    # 2. Clean the raw input
-    df = clean_prediction_data(df)
+        # Convert dictionary to DataFrame
+        df = pd.DataFrame([data_dict])
+        
+        # 2. Clean the raw input
+        df = clean_prediction_data(df)
 
-    # 3. Transform using the saved preprocessing pipeline
-    X = model_loader.preprocessor.transform(df)
+        # 3. Transform using the saved preprocessing pipeline
+        X = model_loader.preprocessor.transform(df)
 
-    # 4. Generate prediction
-    prediction = model_loader.model.predict(X)[0]
+        # 4. Generate prediction
+        prediction = model_loader.model.predict(X)[0]
 
-    # 5. Generate churn probability
-    probability = model_loader.model.predict_proba(X)[0][1]
+        # 5. Generate churn probability
+        probability = model_loader.model.predict_proba(X)[0][1]
 
-    # 6. Return the prediction
-    return {
-        "prediction": int(prediction),
-        "churn_probability": float(probability),
-    }
+        # 6. Return the prediction
+        return {
+            "prediction": int(prediction),
+            "churn_probability": float(probability),
+        }
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred during prediction",
+        )
