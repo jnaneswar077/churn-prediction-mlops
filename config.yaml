@@ -26,6 +26,8 @@ registry:
   model_name: Telco_Churn_Production_Model
   decision_metric: recall
 
+
+
 quality_gate:
   metric: recall
   minimum_value: 0.70
