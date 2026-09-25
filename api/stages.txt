@@ -90,3 +90,19 @@ Stage 8 — Batch Prediction
 8.5 Batch inference            ✅
 8.6 Batch response             ✅
 8.7 Batch validation           ✅
+
+
+| Stage                                       | Status    |
+| ------------------------------------------- | --------- |
+| 1. Basic FastAPI app                        | ✅         |
+| 2. `/health`                                | ✅         |
+| 3. ModelLoader                              | ✅         |
+| 4. `/metadata`                              | ✅         |
+| 5. `/predict`                               | ✅         |
+| 6. Pydantic input/output schemas            | ✅         |
+| 7. Validation + standardized errors         | ✅         |
+| 8. Batch prediction                         | ✅         |
+| 9. API testing                              | ✅ 12/12   |
+| 10. Invalid/extreme/corrupted input testing | ✅ 23/23   |
+| **11. Performance & reliability**           | **✅ 6/6** |
+| 12. Reports + documentation                 | ⏳         |
