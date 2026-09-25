@@ -377,3 +377,322 @@ def test_extreme_numeric_values(client):
     assert data["prediction"] in [0, 1]
 
     assert 0.0 <= data["churn_probability"] <= 1.0
+
+# ---------------------------------------------------------
+# Stage 10.1 - Null / Corrupted Input
+# ---------------------------------------------------------
+
+def test_null_value(client):
+    payload = VALID_CUSTOMER.copy()
+
+    payload["gender"] = None
+
+    response = client.post(
+        "/predict",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) == 1
+
+    assert data["details"][0]["field"] == "gender"
+
+# =========================================================
+# STAGE 10 - INVALID / EXTREME / CORRUPTED INPUT TESTING
+# =========================================================
+
+
+# ---------------------------------------------------------
+# 10.2 - Malformed JSON
+# ---------------------------------------------------------
+
+def test_malformed_json(client):
+    malformed_json = """
+    {
+        "customerID": "TEST001",
+        "gender": "Male"
+    """
+
+    response = client.post(
+        "/predict",
+        content=malformed_json,
+        headers={
+            "Content-Type": "application/json"
+        },
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) >= 1
+
+
+# ---------------------------------------------------------
+# 10.3 - Completely Wrong JSON Structure
+# ---------------------------------------------------------
+
+def test_wrong_json_structure(client):
+    payload = [
+        "this",
+        "should",
+        "be",
+        "an",
+        "object"
+    ]
+
+    response = client.post(
+        "/predict",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) >= 1
+
+
+# ---------------------------------------------------------
+# 10.4 - Null Numeric Value
+# ---------------------------------------------------------
+
+def test_null_numeric_value(client):
+    payload = VALID_CUSTOMER.copy()
+
+    payload["MonthlyCharges"] = None
+
+    response = client.post(
+        "/predict",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) == 1
+
+    assert data["details"][0]["field"] == "MonthlyCharges"
+
+
+# ---------------------------------------------------------
+# 10.5 - Null Required String Value
+# ---------------------------------------------------------
+
+def test_null_total_charges(client):
+    payload = VALID_CUSTOMER.copy()
+
+    payload["TotalCharges"] = None
+
+    response = client.post(
+        "/predict",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) == 1
+
+    assert data["details"][0]["field"] == "TotalCharges"
+
+
+# ---------------------------------------------------------
+# 10.6 - Wrong Datatype for Multiple Fields
+# ---------------------------------------------------------
+
+def test_multiple_invalid_datatypes(client):
+    payload = VALID_CUSTOMER.copy()
+
+    payload["tenure"] = "ten years"
+    payload["MonthlyCharges"] = "fifty"
+    payload["SeniorCitizen"] = "old"
+
+    response = client.post(
+        "/predict",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) >= 2
+
+    fields = [
+        error["field"]
+        for error in data["details"]
+    ]
+
+    assert "tenure" in fields
+    assert "MonthlyCharges" in fields
+
+
+# ---------------------------------------------------------
+# 10.7 - Invalid Batch Structure
+# ---------------------------------------------------------
+
+def test_invalid_batch_structure(client):
+    payload = {
+        "customers": VALID_CUSTOMER
+    }
+
+    response = client.post(
+        "/predict/batch",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) >= 1
+
+
+# ---------------------------------------------------------
+# 10.8 - Null Batch Customers
+# ---------------------------------------------------------
+
+def test_null_batch_customers(client):
+    payload = {
+        "customers": None
+    }
+
+    response = client.post(
+        "/predict/batch",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) >= 1
+
+
+# ---------------------------------------------------------
+# 10.9 - Batch Containing Null Customer
+# ---------------------------------------------------------
+
+def test_batch_with_null_customer(client):
+    payload = {
+        "customers": [
+            VALID_CUSTOMER,
+            None,
+        ]
+    }
+
+    response = client.post(
+        "/predict/batch",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    assert len(data["details"]) >= 1
+
+
+# ---------------------------------------------------------
+# 10.10 - Extreme Negative Numeric Values
+# ---------------------------------------------------------
+
+def test_extreme_negative_values(client):
+    payload = VALID_CUSTOMER.copy()
+
+    payload["tenure"] = -1000000
+    payload["MonthlyCharges"] = -999999.0
+
+    response = client.post(
+        "/predict",
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["status"] == "error"
+    assert data["message"] == "Request validation failed"
+
+    fields = [
+        error["field"]
+        for error in data["details"]
+    ]
+
+    assert "tenure" in fields
+    assert "MonthlyCharges" in fields
+
+
+# ---------------------------------------------------------
+# 10.11 - Very Large Valid Batch
+# ---------------------------------------------------------
+
+def test_large_batch(client):
+    customers = []
+
+    for i in range(20):
+        customer = VALID_CUSTOMER.copy()
+
+        customer["customerID"] = f"TEST{i:03d}"
+
+        customers.append(customer)
+
+    payload = {
+        "customers": customers
+    }
+
+    response = client.post(
+        "/predict/batch",
+        json=payload,
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 20
+
+    assert len(data["predictions"]) == 20
+
+    for prediction in data["predictions"]:
+        assert prediction["prediction"] in [0, 1]
+
+        assert (
+            0.0
+            <= prediction["churn_probability"]
+            <= 1.0
+        )
