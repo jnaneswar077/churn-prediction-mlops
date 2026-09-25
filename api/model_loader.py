@@ -1,16 +1,14 @@
 from pathlib import Path
 from typing import Any
-import os
+import json
 import joblib
-import mlflow
-import mlflow.sklearn
 import yaml
 
 
 class ModelLoader:
     """
-    Loads the production ML model from MLflow and the preprocessing
-    pipeline from the local model artifacts.
+    Loads the ML model and preprocessing pipeline from the
+    verified MLflow deployment bundle.
     """
 
     def __init__(self, config_path: str = "config.yaml"):
@@ -24,6 +22,10 @@ class ModelLoader:
 
         self.model_uri = None
         self.model_name = None
+        self.model_version = None
+        self.run_id = None
+        self.model_id = None
+        self.metadata = {}
 
     def load_config(self) -> None:
         """Load project configuration from config.yaml."""
@@ -34,43 +36,53 @@ class ModelLoader:
             )
 
         with open(self.config_path, "r", encoding="utf-8") as file:
-            self.config = yaml.safe_load(file)
+            self.config = yaml.safe_load(file) or {}
 
-    def configure_mlflow(self) -> None:
-        """Configure MLflow using environment variable or config.yaml."""
+    def load_deployment_bundle(self) -> None:
+        """Load model, preprocessor, and metadata from deployment bundle."""
 
-        tracking_uri = (
-            os.getenv("MLFLOW_TRACKING_URI")
-            or self.config["mlflow"].get("tracking_uri")
-        )
+        deployment_dir = self.project_root / "deployment"
 
-        if tracking_uri:
-            mlflow.set_tracking_uri(tracking_uri)
+        model_path = deployment_dir / "model.pkl"
+        preprocessor_path = deployment_dir / "preprocessor.pkl"
+        metadata_path = deployment_dir / "model_metadata.json"
 
-    def load_production_model(self) -> None:
-        """Load the Production model from MLflow Model Registry."""
-
-        self.model_name = self.config["registry"]["model_name"]
-
-        self.model_uri = f"models:/{self.model_name}/Production"
-
-        print(f"[INFO] Loading production model from MLflow: {self.model_uri}")
-
-        self.model = mlflow.sklearn.load_model(self.model_uri)
-
-        print("[SUCCESS] Production model loaded successfully.")
-
-    def load_preprocessor(self) -> None:
-        """Load the fitted preprocessing pipeline."""
-
-        preprocessor_path = (
-            self.project_root / self.config["paths"]["preprocessor"]
-        )
+        if not model_path.exists():
+            raise FileNotFoundError(
+                f"Model not found: {model_path}"
+            )
 
         if not preprocessor_path.exists():
             raise FileNotFoundError(
                 f"Preprocessor not found: {preprocessor_path}"
             )
+
+        if not metadata_path.exists():
+            raise FileNotFoundError(
+                f"Model metadata not found: {metadata_path}"
+            )
+
+        print(f"[INFO] Loading deployment metadata from: {metadata_path}")
+
+        with open(metadata_path, "r", encoding="utf-8") as file:
+            self.metadata = json.load(file)
+
+        self.model_name = self.metadata.get("model_name")
+        self.model_version = self.metadata.get("model_version")
+        self.run_id = self.metadata.get("run_id")
+        self.model_id = self.metadata.get("model_id")
+        self.model_uri = str(model_path)
+
+        print(f"[INFO] Model name    : {self.model_name}")
+        print(f"[INFO] Model version : {self.model_version}")
+        print(f"[INFO] MLflow Run ID : {self.run_id}")
+        print(f"[INFO] Model ID      : {self.model_id}")
+
+        print(f"[INFO] Loading model from: {model_path}")
+
+        self.model = joblib.load(model_path)
+
+        print("[SUCCESS] Model loaded successfully.")
 
         print(f"[INFO] Loading preprocessor from: {preprocessor_path}")
 
@@ -79,14 +91,12 @@ class ModelLoader:
         print("[SUCCESS] Preprocessor loaded successfully.")
 
     def load(self) -> None:
-        """Load configuration, MLflow model, and preprocessor."""
+        """Load configuration and deployment artifacts."""
 
         print("[INFO] Initializing ModelLoader...")
 
         self.load_config()
-        self.configure_mlflow()
-        self.load_production_model()
-        self.load_preprocessor()
+        self.load_deployment_bundle()
 
         print("[SUCCESS] ModelLoader initialization completed.")
 
@@ -94,6 +104,7 @@ class ModelLoader:
         """Return True when both model and preprocessor are loaded."""
 
         return self.model is not None and self.preprocessor is not None
+
 
 if __name__ == "__main__":
     loader = ModelLoader()
@@ -105,7 +116,10 @@ if __name__ == "__main__":
         print(f"Model loaded       : {loader.model is not None}")
         print(f"Preprocessor loaded: {loader.preprocessor is not None}")
         print(f"Model name         : {loader.model_name}")
-        print(f"Model URI          : {loader.model_uri}")
+        print(f"Model version      : {loader.model_version}")
+        print(f"MLflow Run ID      : {loader.run_id}")
+        print(f"Model ID           : {loader.model_id}")
+        print(f"Model path         : {loader.model_uri}")
         print("Ready              :", loader.is_ready())
         print("=========================================\n")
 
