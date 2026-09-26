@@ -25,30 +25,90 @@ def clean_dataframe(df, config):
         df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
 
     if target_column in df.columns:
-        df[target_column] = (
-            df[target_column]
-            .apply(lambda x: 1 if str(x).strip().lower() == "yes" else 0)
-            .astype(int)
-        )
+        df[target_column] = df[target_column].apply(lambda x: 1 if str(x).strip().lower() == "yes" else 0).astype(int)
 
     return df
 
 
-def split_raw_data(df, config):
-    """Clean the raw dataset and create the reproducible train/test split."""
+def create_initial_test_ids(df, config, processed_dir):
+    """Recreate the original test split and permanently save its customer IDs."""
+    id_column = config["data"]["id_column"]
     target_column = config["data"]["target_column"]
-    cleaned = clean_dataframe(df, config)
+    test_ids_path = os.path.join(processed_dir, "test_customer_ids.csv")
 
-    X = cleaned.drop(columns=[target_column])
-    y = cleaned[target_column]
+    if os.path.exists(test_ids_path):
+        test_ids = pd.read_csv(test_ids_path)
 
-    return train_test_split(
+        if id_column not in test_ids.columns:
+            raise ValueError(f"{test_ids_path} does not contain {id_column}.")
+
+        return test_ids[id_column].astype(str).tolist()
+
+    print("[INFO] test_customer_ids.csv not found.")
+    print("[INFO] Recreating the original train/test split to recover test customer IDs...")
+
+    working_df = df.copy()
+    working_df[id_column] = working_df[id_column].astype(str)
+    working_df["TotalCharges"] = pd.to_numeric(working_df["TotalCharges"], errors="coerce")
+    working_df[target_column] = working_df[target_column].apply(lambda x: 1 if str(x).strip().lower() == "yes" else 0).astype(int)
+
+    X = working_df.drop(columns=[id_column, target_column])
+    y = working_df[target_column]
+
+    _, X_test, _, _ = train_test_split(
         X,
         y,
         test_size=config["split"]["test_size"],
         random_state=config["split"]["random_state"],
         stratify=y,
     )
+
+    test_ids = working_df.loc[X_test.index, id_column].astype(str).tolist()
+
+    pd.DataFrame({id_column: test_ids}).to_csv(test_ids_path, index=False)
+
+    print(f"[SUCCESS] Original test-set IDs saved to {test_ids_path}")
+    print(f"[INFO] Fixed test set size: {len(test_ids)}")
+
+    return test_ids
+
+
+def split_raw_data(df, config, processed_dir):
+    """Keep the original test set fixed while using all other records for training."""
+    target_column = config["data"]["target_column"]
+    id_column = config["data"]["id_column"]
+
+    test_ids_path = os.path.join(processed_dir, "test_customer_ids.csv")
+
+    if os.path.exists(test_ids_path):
+        test_ids_df = pd.read_csv(test_ids_path)
+        test_ids = set(test_ids_df[id_column].astype(str))
+        print(f"[INFO] Using fixed test set from {test_ids_path}")
+    else:
+        test_ids = set(create_initial_test_ids(df, config, processed_dir))
+        print("[INFO] Original test set has been permanently fixed.")
+
+    working_df = df.copy()
+    working_df[id_column] = working_df[id_column].astype(str)
+
+    test_mask = working_df[id_column].isin(test_ids)
+
+    if not test_mask.any():
+        raise ValueError("None of the fixed test customer IDs were found in the current dataset.")
+
+    test_df = working_df.loc[test_mask].copy()
+    train_df = working_df.loc[~test_mask].copy()
+
+    y_test = test_df[target_column].apply(lambda x: 1 if str(x).strip().lower() == "yes" else 0).astype(int)
+    y_train = train_df[target_column].apply(lambda x: 1 if str(x).strip().lower() == "yes" else 0).astype(int)
+
+    X_test = clean_dataframe(test_df, config).drop(columns=[target_column])
+    X_train = clean_dataframe(train_df, config).drop(columns=[target_column])
+
+    print(f"[INFO] Training records: {len(X_train)}")
+    print(f"[INFO] Fixed test records: {len(X_test)}")
+
+    return X_train, X_test, y_train, y_test
 
 
 def build_preprocessor(X_train):
@@ -91,8 +151,11 @@ def run_preprocessing():
         print(f"[ERROR] Raw dataset not found at: {data_path}")
         return False
 
+    os.makedirs(processed_dir, exist_ok=True)
+    os.makedirs("models", exist_ok=True)
+
     raw_df = pd.read_csv(data_path)
-    X_train, X_test, y_train, y_test = split_raw_data(raw_df, config)
+    X_train, X_test, y_train, y_test = split_raw_data(raw_df, config, processed_dir)
 
     preprocessor, cat_cols, num_cols = build_preprocessor(X_train)
 
@@ -100,17 +163,11 @@ def run_preprocessing():
     X_train_final = preprocessor.fit_transform(X_train)
     X_test_final = preprocessor.transform(X_test)
 
-    os.makedirs(processed_dir, exist_ok=True)
-    os.makedirs("models", exist_ok=True)
-
-    # Persist transformed matrices for the validation stage and reproducibility checks.
     np.save(os.path.join(processed_dir, "X_train_final.npy"), X_train_final)
     np.save(os.path.join(processed_dir, "X_test_final.npy"), X_test_final)
     np.save(os.path.join(processed_dir, "y_train.npy"), y_train.to_numpy(dtype=np.int64))
     np.save(os.path.join(processed_dir, "y_test.npy"), y_test.to_numpy(dtype=np.int64))
 
-    # Persist the raw split used by the training/evaluation stages so the registered
-    # model can own preprocessing + model in one deployable Pipeline artifact.
     X_train.to_csv(os.path.join(processed_dir, "X_train_raw.csv"), index=False)
     X_test.to_csv(os.path.join(processed_dir, "X_test_raw.csv"), index=False)
 
@@ -127,6 +184,8 @@ def run_preprocessing():
         "categorical_features": cat_cols,
         "split_test_size": config["split"]["test_size"],
         "split_random_state": config["split"]["random_state"],
+        "fixed_test_set": True,
+        "test_customer_ids_path": os.path.join(processed_dir, "test_customer_ids.csv"),
         "raw_train_path": os.path.join(processed_dir, "X_train_raw.csv"),
         "raw_test_path": os.path.join(processed_dir, "X_test_raw.csv"),
     }

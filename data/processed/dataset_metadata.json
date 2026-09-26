@@ -2,7 +2,7 @@
     "dataset_name": "Telco Customer Churn",
     "target_column": "Churn",
     "train_shape_raw": [
-        5635,
+        5835,
         19
     ],
     "test_shape_raw": [
@@ -10,7 +10,7 @@
         19
     ],
     "train_shape_transformed": [
-        5635,
+        5835,
         30
     ],
     "test_shape_transformed": [
@@ -42,6 +42,8 @@
     ],
     "split_test_size": 0.2,
     "split_random_state": 42,
+    "fixed_test_set": true,
+    "test_customer_ids_path": "data/processed\\test_customer_ids.csv",
     "raw_train_path": "data/processed\\X_train_raw.csv",
     "raw_test_path": "data/processed\\X_test_raw.csv"
 }
