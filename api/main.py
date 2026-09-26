@@ -1,3 +1,6 @@
+import time
+import uuid
+
 from contextlib import asynccontextmanager
 
 import pandas as pd
@@ -8,6 +11,7 @@ from fastapi.responses import JSONResponse
 from api.model_loader import ModelLoader
 from api.preprocessing import clean_prediction_data
 from api.schemas import CustomerInput, PredictionResponse, BatchPredictionRequest, BatchPredictionResponse
+from api.monitoring_logger import log_inference
 
 model_loader = ModelLoader()
 
@@ -35,29 +39,29 @@ app = FastAPI(
 )
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError,
-):
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    request_id = uuid.uuid4().hex[:12]
     errors = []
 
     for error in exc.errors():
-        # @below llines after field = can be replaced by locations = till feild = ".".join
-        # field = error["loc"][-1] 
-        locations = [
-            str(location)
-            for location in error["loc"]
-            if location != "body"
-        ]
-
+        locations = [str(location) for location in error["loc"] if location != "body"]
         field = ".".join(locations)
 
-        errors.append(
-            {
-                "field": str(field),
-                "message": error["msg"],
-            }
-        )
+        errors.append({
+            "field": field,
+            "message": error["msg"],
+        })
+
+    log_inference(
+        input_data={},
+        latency_ms=None,
+        status="failure",
+        error="Request validation failed",
+        model_name=model_loader.model_name,
+        model_version=model_loader.model_version,
+        run_id=model_loader.run_id,
+        request_id=request_id,
+    )
 
     return JSONResponse(
         status_code=422,
@@ -118,8 +122,24 @@ def metadata():
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(data: CustomerInput):
+    request_id = uuid.uuid4().hex[:12]
+    start_time = time.perf_counter()
+    data_dict = data.model_dump()
 
     if not model_loader.is_ready():
+        latency_ms = round((time.perf_counter() - start_time) * 1000, 3)
+
+        log_inference(
+            input_data=data_dict,
+            latency_ms=latency_ms,
+            status="failure",
+            error="Model or preprocessor is not available",
+            model_name=model_loader.model_name,
+            model_version=model_loader.model_version,
+            run_id=model_loader.run_id,
+            request_id=request_id,
+        )
+
         raise HTTPException(
             status_code=503,
             detail="Model or preprocessor is not available",
@@ -127,19 +147,10 @@ def predict(data: CustomerInput):
 
     try:
         # 1. Convert JSON data into a DataFrame
-        # df = pd.DataFrame([data])
-
-        # Convert Pydantic object to dictionary
-        data_dict = data.model_dump()
-
-        # Convert dictionary to DataFrame
         df = pd.DataFrame([data_dict])
-        
+
         # 2. Clean the raw input
         df = clean_prediction_data(df)
-
-        #just to test if our model not working case is properly working or not ie are we able to raise cusom excpetion  using below defined except exception
-        # raise ValueError("TEST: simulated prediction failure")
 
         # 3. Transform using the saved preprocessing pipeline
         X = model_loader.preprocessor.transform(df)
@@ -150,58 +161,107 @@ def predict(data: CustomerInput):
         # 5. Generate churn probability
         probability = model_loader.model.predict_proba(X)[0][1]
 
-        # 6. Return the prediction
+        # 6. Calculate inference latency
+        latency_ms = round((time.perf_counter() - start_time) * 1000, 3)
+
+        # 7. Log inference event
+        log_inference(
+            input_data=data_dict,
+            prediction=int(prediction),
+            churn_probability=float(probability),
+            latency_ms=latency_ms,
+            status="success",
+            model_name=model_loader.model_name,
+            model_version=model_loader.model_version,
+            run_id=model_loader.run_id,
+            request_id=request_id,
+        )
+
+        # 8. Return the prediction
         return {
             "prediction": int(prediction),
             "churn_probability": float(probability),
         }
-    except Exception:
+
+    except Exception as e:
+        latency_ms = round((time.perf_counter() - start_time) * 1000, 3)
+
+        log_inference(
+            input_data=data_dict,
+            latency_ms=latency_ms,
+            status="failure",
+            error=str(e),
+            model_name=model_loader.model_name,
+            model_version=model_loader.model_version,
+            run_id=model_loader.run_id,
+            request_id=request_id,
+        )
+
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred during prediction",
         )
 
-@app.post(
-    "/predict/batch",
-    response_model=BatchPredictionResponse,
-)
+@app.post("/predict/batch", response_model=BatchPredictionResponse)
 def predict_batch(data: BatchPredictionRequest):
+    batch_request_id = uuid.uuid4().hex[:12]
+    start_time = time.perf_counter()
+
+    data_dicts = [customer.model_dump() for customer in data.customers]
 
     if not model_loader.is_ready():
+        latency_ms = round((time.perf_counter() - start_time) * 1000, 3)
+
+        for data_dict in data_dicts:
+            log_inference(
+                input_data=data_dict,
+                latency_ms=latency_ms,
+                status="failure",
+                error="Model or preprocessor is not available",
+                model_name=model_loader.model_name,
+                model_version=model_loader.model_version,
+                run_id=model_loader.run_id,
+                request_id=batch_request_id,
+            )
+
         raise HTTPException(
             status_code=503,
             detail="Model or preprocessor is not available",
         )
 
     try:
-        # 1. Convert all Pydantic objects to dictionaries
-        data_dicts = [
-            customer.model_dump()
-            for customer in data.customers
-        ]
-
-        # 2. Convert all customers into one DataFrame
         df = pd.DataFrame(data_dicts)
-
-        # 3. Clean the raw input
         df = clean_prediction_data(df)
 
-        # 4. Transform the complete batch
         X = model_loader.preprocessor.transform(df)
 
-        # 5. Generate predictions for the complete batch
         predictions = model_loader.model.predict(X)
-
-        # 6. Generate churn probabilities
         probabilities = model_loader.model.predict_proba(X)[:, 1]
 
-        # 7. Build response
+        total_latency_ms = round(
+            (time.perf_counter() - start_time) * 1000,
+            3,
+        )
+
         results = []
 
-        for prediction, probability in zip(
+        for data_dict, prediction, probability in zip(
+            data_dicts,
             predictions,
             probabilities,
         ):
+            log_inference(
+                input_data=data_dict,
+                prediction=int(prediction),
+                churn_probability=float(probability),
+                latency_ms=total_latency_ms,
+                status="success",
+                model_name=model_loader.model_name,
+                model_version=model_loader.model_version,
+                run_id=model_loader.run_id,
+                request_id=uuid.uuid4().hex[:12],
+            )
+
             results.append(
                 {
                     "prediction": int(prediction),
@@ -209,13 +269,29 @@ def predict_batch(data: BatchPredictionRequest):
                 }
             )
 
-        # 8. Return batch response
         return {
             "count": len(results),
             "predictions": results,
         }
 
-    except Exception:
+    except Exception as e:
+        latency_ms = round(
+            (time.perf_counter() - start_time) * 1000,
+            3,
+        )
+
+        for data_dict in data_dicts:
+            log_inference(
+                input_data=data_dict,
+                latency_ms=latency_ms,
+                status="failure",
+                error=str(e),
+                model_name=model_loader.model_name,
+                model_version=model_loader.model_version,
+                run_id=model_loader.run_id,
+                request_id=uuid.uuid4().hex[:12],
+            )
+
         raise HTTPException(
             status_code=500,
             detail="An unexpected error occurred during batch prediction",

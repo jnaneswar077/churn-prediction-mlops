@@ -1,0 +1,77 @@
+LAB 11
+Docker + Kubernetes + Deployment
+        │
+        ▼
+┌──────────────────────────────────────┐
+│        PHASE A: MONITORING           │
+│                                      │
+│ 12.1 Monitoring Architecture   ✅    │
+│ 12.2 Inference Logging          ✅    │
+│ 12.3 Prediction Distribution   ← NOW│
+│ 12.4 Latency / Throughput / Errors   │
+│ 12.5 Request–Response History        │
+└──────────────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────────────┐
+│     PHASE B: MODEL BEHAVIOR          │
+│                                      │
+│ 12.6 Performance Degradation         │
+│ 12.7 Performance Trend Analysis      │
+└──────────────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────────────┐
+│          PHASE C: DRIFT              │
+│                                      │
+│ 12.8 Data Drift                      │
+│ 12.9 Prediction Drift                │
+│ 12.10 Concept Drift                  │
+│ 12.11 Drift Analysis                 │
+└──────────────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────────────┐
+│      PHASE D: RETRAINING             │
+│                                      │
+│ 12.12 Updated Dataset                │
+│ 12.13 Retraining                     │
+│ 12.14 Before vs After Comparison     │
+└──────────────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────────────┐
+│    PHASE E: MODEL LIFECYCLE          │
+│                                      │
+│ 12.15 MLflow Registry Update         │
+│ 12.16 New Deployment Bundle          │
+│ 12.17 New Docker Image               │
+│ 12.18 Kubernetes Rollout             │
+└──────────────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────────────┐
+│    PHASE F: END-TO-END VALIDATION    │
+│                                      │
+│ 12.19 Updated Model Validation       │
+│ 12.20 Complete Lifecycle Test        │
+└──────────────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────────────┐
+│      PHASE G: FINAL ARTIFACTS        │
+│                                      │
+│ 12.21 Monitoring Report              │
+│ 12.22 Drift Analysis Report          │
+│ 12.23 Retraining Report              │
+│ 12.24 Model Comparison Report        │
+│ 12.25 Updated Deployment Artifacts   │
+│ 12.26 Final MLOps Documentation      │
+└──────────────────────────────────────┘
+        │
+        ▼
+ COMPLETE MLOps SYSTEM
+        │
+        ▼
+ LAB 13
+ Final integration + demo + presentation
