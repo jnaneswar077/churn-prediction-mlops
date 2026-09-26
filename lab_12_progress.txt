@@ -1,0 +1,102 @@
+| Stage     | Main question                                          |
+| --------- | ------------------------------------------------------ |
+| **12.1**  | What should we monitor?                                |
+| **12.2**  | How do we collect evidence?                            |
+| **12.3**  | What are we predicting?                                |
+| **12.4**  | Is the API behaving reliably?                          |
+| **12.5**  | What happened to each request?                         |
+| **12.6**  | What is the model's normal performance?                |
+| **12.7**  | How does performance change across monitoring windows? |
+| **12.8**  | Did the input population change?                       |
+| **12.9**  | Did model outputs change?                              |
+| **12.10** | Did actual model performance change?                   |
+| **12.11** | What does all the evidence collectively tell us?       |
+| **12.12** | **How do we create an updated training dataset?**      |
+
+
+What We Have Built So Far
+1. Runtime monitoring
+api/
+├── main.py
+└── monitoring_logger.py
+
+logs/
+└── inference/
+    └── inference_log.jsonl
+
+
+2. Analysis
+src/mlops_pipeline/
+
+12_prediction_monitoring.py
+12_api_performance_monitoring.py
+12_request_history.py
+12_performance_monitoring.py
+12_performance_trend.py
+12_create_evolved_dataset.py
+12_data_drift.py
+12_prediction_drift.py
+12_create_concept_drift_dataset.py
+12_concept_drift.py
+12_drift_analysis.py
+
+3. Evidence/artifacts
+outputs/
+└── drift/
+    ├── data_drift_report.csv
+    ├── prediction_drift_report.csv
+    ├── concept_drift_report.csv
+    └── drift_analysis_report.csv
+
+PHASE A — PRODUCTION MONITORING
+
+12.1 Monitoring Architecture       ✅
+12.2 Inference Logging             ✅
+12.3 Prediction Distribution       ✅
+12.4 Latency/Throughput/Failures   ✅
+12.5 Request-Response History      ✅
+
+
+PHASE B — MODEL BEHAVIOR
+
+12.6 Performance Baseline          ✅
+12.7 Performance Trend             ✅
+
+
+PHASE C — DRIFT
+
+12.8 Data Drift                    ✅
+12.9 Prediction Drift              ✅
+12.10 Concept Drift                ✅
+12.11 Drift Analysis               ✅
+
+
+PHASE D — CONTINUOUS TRAINING
+
+12.12 Updated Dataset              ⏭️
+12.13 Retraining                  ⏳
+12.14 Before vs After             ⏳
+
+
+PHASE E — LIFECYCLE INTEGRATION
+
+12.15 MLflow Registry              ⏳
+12.16 Deployment Bundle            ⏳
+12.17 Docker                       ⏳
+12.18 Kubernetes                   ⏳
+
+
+PHASE F — VALIDATION
+
+12.19 Updated Model Validation    ⏳
+12.20 Complete Lifecycle Test     ⏳
+
+
+PHASE G — FINAL ARTIFACTS
+
+12.21 Monitoring Report            ⏳
+12.22 Drift Analysis Report        ✅
+12.23 Retraining Report            ⏳
+12.24 Model Comparison Report      ⏳
+12.25 Updated Deployment Artifacts ⏳
+12.26 Final Documentation          ⏳

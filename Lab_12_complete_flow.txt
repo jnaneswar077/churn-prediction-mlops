@@ -6,8 +6,8 @@ Docker + Kubernetes + Deployment
 │        PHASE A: MONITORING           │
 │                                      │
 │ 12.1 Monitoring Architecture   ✅    │
-│ 12.2 Inference Logging          ✅    │
-│ 12.3 Prediction Distribution   ← NOW│
+│ 12.2 Inference Logging          ✅   │
+│ 12.3 Prediction Distribution   ← NOW │
 │ 12.4 Latency / Throughput / Errors   │
 │ 12.5 Request–Response History        │
 └──────────────────────────────────────┘
@@ -74,4 +74,4 @@ Docker + Kubernetes + Deployment
         │
         ▼
  LAB 13
- Final integration + demo + presentation
+ Final integration + demo + presentation 
