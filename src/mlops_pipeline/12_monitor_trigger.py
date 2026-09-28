@@ -13,6 +13,7 @@ DRIFT_REPORT = Path("outputs/drift/drift_analysis_report.csv")
 NEW_DATA_PATH = Path("data/raw/new_churn.csv")
 PIPELINE_SCRIPT = Path("src/mlops_pipeline/churn_prediction_pipeline.py")
 TRIGGER_REPORT = Path("outputs/monitoring/monitor_trigger_report.json")
+DATA_LOAD_REPORT = Path("artifacts/data_load_report.json")
 
 
 def run_drift_analysis():
@@ -29,11 +30,20 @@ def detect_drift():
 
     for column in df.columns:
         values = df[column].astype(str).str.strip().str.upper()
-
         if values.eq("DRIFT").any():
             return True
 
     return False
+
+
+def get_data_load_status():
+    if not DATA_LOAD_REPORT.exists():
+        return None
+
+    with DATA_LOAD_REPORT.open("r", encoding="utf-8") as f:
+        report = json.load(f)
+
+    return report.get("status")
 
 
 def save_trigger_report(report):
@@ -45,7 +55,7 @@ def save_trigger_report(report):
 
 def run_monitor_trigger():
     print("=" * 70)
-    print("LAB 12 MONITORING + RETRAINING TRIGGER")
+    print("LAB 13 MONITORING + RETRAINING TRIGGER")
     print("=" * 70)
 
     drift_analysis_passed = run_drift_analysis()
@@ -55,8 +65,10 @@ def run_monitor_trigger():
             "status": "drift_analysis_failed",
             "drift_detected": False,
             "new_data_present": NEW_DATA_PATH.exists(),
-            "pipeline_triggered": False,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "pipeline_called": False,
+            "new_data_ingested": False,
+            "retraining_executed": False,
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
         save_trigger_report(report)
@@ -74,8 +86,10 @@ def run_monitor_trigger():
             "status": "no_drift",
             "drift_detected": False,
             "new_data_present": new_data_present,
-            "pipeline_triggered": False,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "pipeline_called": False,
+            "new_data_ingested": False,
+            "retraining_executed": False,
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
         save_trigger_report(report)
@@ -87,8 +101,10 @@ def run_monitor_trigger():
             "status": "drift_waiting_for_data",
             "drift_detected": True,
             "new_data_present": False,
-            "pipeline_triggered": False,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "pipeline_called": False,
+            "new_data_ingested": False,
+            "retraining_executed": False,
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
         save_trigger_report(report)
@@ -100,28 +116,39 @@ def run_monitor_trigger():
     print("[INFO] Triggering existing MLOps pipeline...")
 
     pipeline_result = subprocess.run([sys.executable, str(PIPELINE_SCRIPT)])
-    pipeline_triggered = True
+
+    data_load_status = get_data_load_status()
+    new_data_ingested = data_load_status == "ingested"
+    retraining_executed = new_data_ingested and pipeline_result.returncode == 0
+
+    status = "retraining_completed" if retraining_executed else "no_new_data_retraining_skipped"
 
     report = {
-        "status": "pipeline_triggered",
+        "status": status,
         "drift_detected": True,
         "new_data_present": True,
-        "pipeline_triggered": pipeline_triggered,
+        "pipeline_called": True,
         "pipeline_exit_code": pipeline_result.returncode,
         "pipeline_status": "passed" if pipeline_result.returncode == 0 else "failed",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "data_load_status": data_load_status,
+        "new_data_ingested": new_data_ingested,
+        "retraining_executed": retraining_executed,
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
-
     save_trigger_report(report)
 
-    if pipeline_result.returncode == 0:
-        print("[SUCCESS] Monitoring trigger completed successfully.")
-        return True
+    if pipeline_result.returncode != 0:
+        print("[ERROR] Existing MLOps pipeline failed.")
+        return False
 
-    print("[ERROR] Existing MLOps pipeline failed.")
-    return False
+    if new_data_ingested:
+        print("[SUCCESS] New data was ingested and retraining completed.")
+    else:
+        print("[INFO] Pipeline completed, but no new data was ingested. Retraining was skipped.")
+
+    return True
 
 
 if __name__ == "__main__":
     passed = run_monitor_trigger()
-    sys.exit(0 if passed else 1) 
+    sys.exit(0 if passed else 1)
