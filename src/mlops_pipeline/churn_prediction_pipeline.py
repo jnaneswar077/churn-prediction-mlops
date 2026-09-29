@@ -14,6 +14,7 @@ STAGES = [
     ("Model Evaluation", "src/mlops_pipeline/06_model_evaluation.py"),
     ("Model Quality Gate", "src/mlops_pipeline/07_quality_gate.py"),
     ("Automated Model Lifecycle", "src/mlops_pipeline/08_automate_lifecycle.py"),
+    ("Deployment Update", "src/mlops_pipeline/deploy_if_promoted.py"),
     ("Production Inference", "src/mlops_pipeline/09_inference.py"),
 ]
 
