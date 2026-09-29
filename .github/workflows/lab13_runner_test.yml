@@ -1,6 +1,9 @@
 name: Lab 13 - Self Hosted Runner Test
 
 on:
+  push:
+    branches:
+      - lab13-integration
   workflow_dispatch:
 
 jobs:
