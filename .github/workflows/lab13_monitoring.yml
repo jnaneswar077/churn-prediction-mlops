@@ -1,5 +1,5 @@
 name: Lab 13 - End-to-End MLOps
-
+# Integration test: process a genuinely new incoming batch
 on:
   push:
     branches:
