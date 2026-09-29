@@ -1,10 +1,11 @@
 name: Lab 13 - End-to-End MLOps
 # Integration test: process a genuinely new incoming batch
+
 on:
-  push:
-    branches:
-      - lab13-integration
   workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+      timezone: "Asia/Kolkata"
 
 jobs:
   mlops-monitoring:
