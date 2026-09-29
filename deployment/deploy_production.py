@@ -1,5 +1,4 @@
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +13,6 @@ K8S_DEPLOYMENT_PATH = PROJECT_ROOT / "k8s" / "deployment.yaml"
 REPORT_PATH = PROJECT_ROOT / "reports" / "deployment_automation_report.json"
 
 IMAGE_NAME = "churn-prediction-api"
-KIND_CLUSTER = os.getenv("KIND_CLUSTER", "kind")
 
 
 def run_command(command):
@@ -90,11 +88,14 @@ def deploy_production():
     print(f"[INFO] Kubernetes   : {deployment_name}")
     print(f"[INFO] Container    : {container_name}")
 
-    print("[INFO] Building Docker image...")
-    run_command(["docker", "build", "-t", image_tag, "."])
+    image_exists = subprocess.run(["docker", "image", "inspect", image_tag], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
-    print("[INFO] Loading image into Kind...")
-    run_command(["kind", "load", "docker-image", image_tag, "--name", KIND_CLUSTER])
+    if image_exists:
+        print(f"[INFO] Docker image already exists: {image_tag}")
+        print("[INFO] Reusing existing image.")
+    else:
+        print("[INFO] Docker image not found. Building...")
+        run_command(["docker", "build", "-t", image_tag, "."])
 
     print("[INFO] Updating Kubernetes deployment...")
     run_command([
@@ -120,7 +121,7 @@ def deploy_production():
         "model_version": str(model_version),
         "run_id": run_id,
         "docker_image": image_tag,
-        "kind_cluster": KIND_CLUSTER,
+        "kubernetes_context": "docker-desktop",
         "kubernetes_deployment": deployment_name,
         "kubernetes_container": container_name,
         "app_label": app_label,
@@ -134,7 +135,6 @@ def deploy_production():
     save_report(report)
 
     print("[SUCCESS] Docker image built.")
-    print("[SUCCESS] Image loaded into Kind.")
     print("[SUCCESS] Kubernetes deployment updated.")
     print("[SUCCESS] Kubernetes rollout completed.")
     print(f"[SUCCESS] Deployment report saved to {REPORT_PATH}")
