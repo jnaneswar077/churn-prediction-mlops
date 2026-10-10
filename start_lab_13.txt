@@ -1,0 +1,12 @@
+| Component                         | Responsibility                                          |
+| --------------------------------- | ------------------------------------------------------- |
+| `12_monitor_trigger.py`           | Detect whether monitoring conditions require retraining |
+| `churn_prediction_pipeline.py`    | Execute the ML training/lifecycle pipeline              |
+| `08_automate_lifecycle.py`        | Decide whether candidate becomes Production             |
+| `deploy_if_promoted.py`           | Deploy only when lifecycle says promotion happened      |
+| `deployment/deploy_production.py` | Build/load/update Kubernetes deployment                 |
+| GitHub Actions                    | Schedule/launch monitoring workflow                     |
+| Self-hosted runner                | Execute everything on your Windows machine              |
+| FastAPI                           | Serve predictions                                       |
+| MLflow                            | Track runs and manage model versions                    |
+| Kubernetes                        | Run the containerized API                               |

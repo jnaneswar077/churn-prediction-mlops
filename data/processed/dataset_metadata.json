@@ -2,7 +2,7 @@
     "dataset_name": "Telco Customer Churn",
     "target_column": "Churn",
     "train_shape_raw": [
-        5835,
+        5935,
         19
     ],
     "test_shape_raw": [
@@ -10,7 +10,7 @@
         19
     ],
     "train_shape_transformed": [
-        5835,
+        5935,
         30
     ],
     "test_shape_transformed": [
