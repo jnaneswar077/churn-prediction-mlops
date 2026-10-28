@@ -5,9 +5,9 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Ignore ALL data files
-data/raw/*.csv
-!data/raw/churn.csv
-data/processed/*.npy
+# data/raw/*.csv
+# !data/raw/churn.csv
+# data/processed/*.npy
 
 # Ignore model artifacts
 models/*.pkl
